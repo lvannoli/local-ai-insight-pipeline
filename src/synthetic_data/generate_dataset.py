@@ -231,10 +231,14 @@ def score_dimensions(selected_needs, selected_urgent, flags, pop_group):
     services = 1
     vulnerability = 1
 
+    # Base contributions
+
     # Human impact
     if "health" in selected_needs:
-        human += 1
+        human += 2
     if "food" in selected_needs:
+        human += 1
+    if "water" in selected_needs:
         human += 1
     if flags["health_issue"]:
         human += 1
@@ -243,12 +247,14 @@ def score_dimensions(selected_needs, selected_urgent, flags, pop_group):
 
     # Living conditions
     if "shelter" in selected_needs:
-        living += 1
+        living += 2
     if "water" in selected_needs:
         living += 1
     if "wash" in selected_needs:
         living += 1
     if "energy" in selected_needs:
+        living += 1
+    if flags["displacement"]:
         living += 1
 
     # Access to services
@@ -259,35 +265,71 @@ def score_dimensions(selected_needs, selected_urgent, flags, pop_group):
     if "water" in selected_needs:
         services += 1
     if flags["access_constraint"]:
+        services += 2
+    if len(selected_urgent) >= 1:
         services += 1
 
     # Vulnerability
     if flags["displacement"]:
-        vulnerability += 1
+        vulnerability += 2
     if flags["children_present"]:
         vulnerability += 1
-    if flags["elderly_present"] or flags["disability_present"]:
+    if flags["elderly_present"]:
+        vulnerability += 1
+    if flags["disability_present"]:
         vulnerability += 1
     if pop_group in ["IDPs", "refugees"]:
         vulnerability += 1
 
-    # Small noise for realism
-    human = min(5, max(1, human + random.choice([0, 0, 0, 1, -1])))
-    living = min(5, max(1, living + random.choice([0, 0, 0, 1, -1])))
-    services = min(5, max(1, services + random.choice([0, 0, 0, 1, -1])))
-    vulnerability = min(5, max(1, vulnerability + random.choice([0, 0, 0, 1, -1])))
+    # Escalation rules, softer than before
+    critical_factors = 0
 
+    if "health" in selected_needs and "water" in selected_needs:
+        critical_factors += 1
+    if "health" in selected_needs and "food" in selected_needs:
+        critical_factors += 1
+    if "shelter" in selected_needs and flags["displacement"]:
+        critical_factors += 1
+    if flags["health_issue"] and flags["access_constraint"]:
+        critical_factors += 1
+    if len(selected_needs) >= 3:
+        critical_factors += 1
+    if len(selected_urgent) >= 2:
+        critical_factors += 1
+
+    if critical_factors >= 3:
+        human += 1
+        services += 1
+
+    if critical_factors >= 4:
+        living += 1
+        vulnerability += 1
+
+    # Noise: mostly neutral, sometimes up, sometimes down
+    human += random.choice([-1, 0, 0, 0, 1])
+    living += random.choice([-1, 0, 0, 0, 1])
+    services += random.choice([-1, 0, 0, 0, 1])
+    vulnerability += random.choice([-1, 0, 0, 0, 1])
+
+    # Clip
+    human = min(5, max(1, human))
+    living = min(5, max(1, living))
+    services = min(5, max(1, services))
+    vulnerability = min(5, max(1, vulnerability))
+
+    # Weighted score
     severity_score = round(
         0.30 * human + 0.30 * living + 0.25 * services + 0.15 * vulnerability, 2
     )
 
+    # Slightly stricter thresholds at the top
     if severity_score < 1.5:
         severity_class = "Minimal"
     elif severity_score < 2.5:
         severity_class = "Stress"
     elif severity_score < 3.5:
         severity_class = "Severe"
-    elif severity_score < 4.5:
+    elif severity_score < 4.6:
         severity_class = "Extreme"
     else:
         severity_class = "Catastrophic"
