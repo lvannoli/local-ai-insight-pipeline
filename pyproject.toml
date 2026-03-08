@@ -1,0 +1,9 @@
+[project]
+name = "local-ai-insight-pipeline"
+version = "0.1.0"
+description = "Local-first LLM pipeline for humanitarian text analysis and dashboard generation."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
