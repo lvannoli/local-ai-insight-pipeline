@@ -1,10 +1,13 @@
 pandas
 numpy
-duckdb
-streamlit
-geopandas
-shapely
 pyarrow
 jupyter
 matplotlib
+duckdb
+geopandas
+shapely
+streamlit
 pytest
+mlx-lm
+huggingface_hub
+tqdm
